@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       opts = cookieOptions(process.env.NODE_ENV === "production");
     if (action === "login") {
       const p = z
-        .object({ username: z.string().min(3).max(64), password: s.password })
+        .object({ username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/), password: s.password })
         .strict()
         .parse(input);
       const result = await services().auth.loginAdministrator(
