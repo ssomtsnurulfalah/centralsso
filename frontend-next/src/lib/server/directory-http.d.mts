@@ -1,0 +1,1 @@
+export function createDirectoryHandler(method: 'searchUsers' | 'getUserById' | 'getUserStatus', options?: {call?: (op: string, payload: unknown) => Promise<Record<string, unknown>>}): (request: Request) => Promise<Response>;
