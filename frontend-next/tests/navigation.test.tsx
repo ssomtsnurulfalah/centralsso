@@ -5,12 +5,13 @@ import { Shell } from '../src/components/shell';
 import type { Identity } from '../src/lib/panel-schema';
 const admin: Identity={sso_user_id:'usr_admin',username:'admin.utama',full_name:'Admin Uji',global_role:'super_admin',account_status:'active',identity_version:1};
 function setup(user=admin,section='dashboard') {
+ window.history.replaceState(null,'','/admin');
  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({success:true,data:{system_name:'Central SSO',institution_name:'Institusi Uji',display_timezone:'Asia/Jakarta'}})));
  const router={bfcacheId:'navigation-test',back:vi.fn(),forward:vi.fn(),refresh:vi.fn(),hmrRefresh:vi.fn(),push:vi.fn(),replace:vi.fn(),prefetch:vi.fn()};
  render(<AppRouterContext.Provider value={router}><Shell user={user} section={section}><p>Konten terlindungi</p></Shell></AppRouterContext.Provider>);
  return router;
 }
-test('NAV01 all authorized sidebar destinations retain native navigation when client router makes no progress',()=>{
+test('NAV01 sidebar destinations update history without document navigation or router fetch',()=>{
  const router=setup();const nav=screen.getByRole('navigation',{name:'Navigasi utama'});
  const links=within(nav).getAllByRole('link');
  expect(links.map(a=>a.getAttribute('href'))).toEqual(['/admin','/admin/users','/admin/applications','/admin/credentials','/admin/logs','/admin/settings','/admin/profile']);
@@ -20,7 +21,8 @@ test('NAV01 all authorized sidebar destinations retain native navigation when cl
   let intercepted:boolean|undefined;
   const observe=(e:Event)=>{intercepted=e.defaultPrevented;e.preventDefault();};
   document.addEventListener('click',observe,{once:true});fireEvent(link,event);
-  expect(intercepted).toBe(false);
+  expect(intercepted).toBe(true);
+  expect(window.location.pathname).toBe(link.getAttribute('href'));
  }
  expect(router.push).not.toHaveBeenCalled();
 });

@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import { AdminLink } from "./admin-link";
 import type { Identity } from "@/lib/panel-schema";
 import { api, errorMessage } from "@/lib/client";
 import { Badge, Button, Notice } from "./common";
@@ -109,7 +110,7 @@ function ShellBody({
         />
       ) : null}
       <aside className={`sidebar ${open ? "is-open" : ""}`}>
-        <a className="brand" href="/admin">
+        <AdminLink className="brand" href="/admin">
           <span className="brand-symbol">
             <Fingerprint size={25} />
           </span>
@@ -117,7 +118,7 @@ function ShellBody({
             {prefs.system_name}
             <small>{prefs.institution_name}</small>
           </span>
-        </a>
+        </AdminLink>
         <Button
           className="nav-close"
           variant="ghost"
@@ -130,7 +131,7 @@ function ShellBody({
         <div className="nav-label">RUANG ADMINISTRASI</div>
         <nav aria-label="Navigasi utama">
           {links.map(({ id, label, icon: Icon }) => (
-            <a
+            <AdminLink
               key={id}
               href={id === "dashboard" ? "/admin" : `/admin/${id}`}
               onClick={() => setOpen(false)}
@@ -140,7 +141,7 @@ function ShellBody({
               <Icon size={19} />
               <span>{label}</span>
               {id === section ? <ChevronRight size={15} /> : null}
-            </a>
+            </AdminLink>
           ))}
         </nav>
         <div className="sidebar-note">
@@ -196,7 +197,7 @@ function ShellBody({
           <div className="page-heading">
             <div>
               <div className="eyebrow">CENTRAL SSO / ADMINISTRASI</div>
-              <h1>{current.label}</h1>
+              <h1 id="page-title" tabIndex={-1}>{current.label}</h1>
               <p>{current.description}</p>
             </div>
             <Badge value={user.global_role} />

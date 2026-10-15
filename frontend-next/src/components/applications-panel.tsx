@@ -1,4 +1,5 @@
 "use client";
+import { AdminLink } from "./admin-link";
 import { useDate } from "./preferences";
 import { useState, type FormEvent } from "react";
 import { Plus, Pencil, Power, ArrowUpRight, KeyRound } from "lucide-react";
@@ -122,12 +123,12 @@ export function ApplicationsPanel() {
                             <Pencil size={14} /> Edit
                           </Button>
                           <Button asChild variant="ghost" size="icon">
-                            <a
+                            <AdminLink
                               href={`/admin/credentials?app=${encodeURIComponent(r.application_id)}`}
                               aria-label={`Kredensial ${r.application_name}`}
                             >
                               <KeyRound size={16} />
-                            </a>
+                            </AdminLink>
                           </Button>
                           {r.application_status === "active" ? (
                             <Button

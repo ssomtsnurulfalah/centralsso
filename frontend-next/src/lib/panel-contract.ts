@@ -77,6 +77,7 @@ const issuedCredential = credentialMutation.extend({
   previous_credential_id: z.union([s.id, z.null()]),
 });
 export const panelResponses = {
+  "page.access":z.object({section:s.adminSection,user:s.identity,allowed:z.boolean()}).refine(v=>v.allowed===(v.user.global_role==="super_admin"||["dashboard","users","profile"].includes(v.section))),
   "integration.preflight": z.object({
     environment: z.enum(["development", "staging", "production"]),
     schema_version: z.literal("1"),
@@ -153,6 +154,7 @@ export function validatePanelData(
   const result = panelResponses[action as PanelAction].safeParse(value);
   if (!result.success) fail();
   const data = result.data as Record<string, unknown>;
+  if(action==="page.access"&&data.section!==input.section)fail();
   if (
     input.operation_id !== undefined &&
     action !== "operation.get" &&

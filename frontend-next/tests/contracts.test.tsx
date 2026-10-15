@@ -23,6 +23,12 @@ const pagination = {
   total_pages: 1,
   has_next: false,
 };
+test('page access binds response to destination and rejects fabricated permission',()=>{
+ const identity={sso_user_id:'usr_test',username:'admin.utama',full_name:'Admin',global_role:'admin',account_status:'active',identity_version:1};
+ expect(()=>validatePanelData('page.access',{section:'applications',user:identity,allowed:true},{section:'applications'})).toThrow();
+ expect(()=>validatePanelData('page.access',{section:'users',user:identity,allowed:true},{section:'profile'})).toThrow();
+ expect(validatePanelData('page.access',{section:'applications',user:identity,allowed:false},{section:'applications'})).toMatchObject({allowed:false});
+});
 test("C01 response null atau action tidak dikenal ditolak", () => {
   for (const value of [null, {}, [], { items: [] }])
     expect(() => validatePanelData("users.list", value)).toThrow();

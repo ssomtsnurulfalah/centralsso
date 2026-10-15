@@ -126,6 +126,11 @@ export async function POST(request: NextRequest) {
       throw Object.assign(new Error(), { code: "PERMISSION_DENIED" });
     let data: unknown;
     switch (action) {
+      case "page.access": {
+        const p=z.object({section:s.adminSection}).strict().parse(input);
+        data={section:p.section,user,allowed:user.global_role==="super_admin"||["dashboard","users","profile"].includes(p.section)};
+        break;
+      }
       case "integration.preflight":
         z.object({}).strict().parse(input);
         data = await panelCall(

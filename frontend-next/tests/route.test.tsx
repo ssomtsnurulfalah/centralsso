@@ -91,6 +91,17 @@ beforeEach(() => {
   vi.stubGlobal("fetch", transport);
 });
 afterEach(() => vi.unstubAllEnvs());
+test('SPA access checks use server session and deny restricted destination for Admin',async()=>{
+  loginAs('admin');
+  const response=await POST(request('page.access',{section:'applications'}));
+  const body=await response.json();expect(response.status).toBe(200);expect(body.data.allowed).toBe(false);expect(body.data.user.global_role).toBe('admin');
+  expect(transport).toHaveBeenCalledTimes(1);
+  expect((await POST(request('apps.list',{}))).status).toBe(403);
+});
+test('SPA access checks reject missing sessions and invalid destinations',async()=>{
+  expect((await POST(request('page.access',{section:'users'}))).status).toBe(401);
+  loginAs('super_admin');expect((await POST(request('page.access',{section:'unknown'}))).status).toBe(400);
+});
 test('LH HTTP numeric security Settings still allow real Super Admin login',async()=>{
   e.spreadsheet.getSheetByName('Settings').cells.slice(1).forEach((r: unknown[])=>{if(typeof r[1]==='string'&&/^\d+$/.test(r[1]))r[1]=Number(r[1]);});
   expect((await POST(request('login',{username:'admin.utama',password}))).status).toBe(200);

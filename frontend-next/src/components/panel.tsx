@@ -1,4 +1,5 @@
 "use client";
+import { AdminLink } from "./admin-link";
 import { usePreferences, useDate } from "./preferences";
 import { useState, type FormEvent } from "react";
 import {
@@ -65,9 +66,9 @@ function Dashboard({ user }: { user: Identity }) {
             Pantau pengguna dan aktivitas dari satu tempat.
           </p>
           <Button asChild>
-            <a href="/admin/users">
+            <AdminLink href="/admin/users">
               Kelola pengguna <ArrowUpRight size={17} />
-            </a>
+            </AdminLink>
           </Button>
         </div>
         <div className="banner-emblem" aria-hidden="true">
@@ -135,9 +136,9 @@ function Dashboard({ user }: { user: Identity }) {
               <p>Enam aktivitas terakhir yang tercatat.</p>
             </div>
             {user.global_role === "super_admin" ? (
-              <a href="/admin/logs">
+              <AdminLink href="/admin/logs">
                 Lihat log <ArrowUpRight size={15} />
-              </a>
+              </AdminLink>
             ) : null}
           </div>
           {user.global_role !== "super_admin" ? (
@@ -176,13 +177,13 @@ function Dashboard({ user }: { user: Identity }) {
                 ]
               : []),
           ].map((v) => (
-            <a className="quick-link" href={v.href} key={v.href}>
+            <AdminLink className="quick-link" href={v.href} key={v.href}>
               <div>
                 <strong>{v.label}</strong>
                 <small>{v.detail}</small>
               </div>
               <ArrowUpRight size={17} />
-            </a>
+            </AdminLink>
           ))}
           <div className="freshness">
             <span className="version-dot" /> Diperbarui {date(d?.generated_at)}

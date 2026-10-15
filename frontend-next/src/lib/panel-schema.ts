@@ -1,5 +1,6 @@
 import { z } from "zod";
 export const role = z.enum(["super_admin", "admin", "user"]);
+export const adminSection=z.enum(["dashboard","users","applications","credentials","logs","settings","profile"]);
 export const status = z.enum(["active", "inactive", "suspended"]);
 export const identity = z.object({
   sso_user_id: z.string().regex(/^[a-zA-Z0-9_.:-]{1,160}$/),

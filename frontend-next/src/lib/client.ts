@@ -10,13 +10,14 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function api<T>(action: string, input: unknown = {}): Promise<T> {
+export async function api<T>(action: string, input: unknown = {}, options: {signal?:AbortSignal} = {}): Promise<T> {
   const response = await fetch("/api/panel", {
     method: "POST",
     credentials: "same-origin",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action, input }),
+    signal: options.signal,
   });
   let result;
   try {
@@ -72,12 +73,13 @@ export function useData<T>(
   const key = JSON.stringify(input);
   useEffect(() => {
     let alive = true;
+    const controller=new AbortController();
     if (!enabled) {
       setState({ loading: false });
       return;
     }
     setState({ loading: true });
-    api<T>(action, JSON.parse(key))
+    api<T>(action, JSON.parse(key), {signal:controller.signal})
       .then((data) => {
         if (alive) setState({ data, loading: false });
       })
@@ -86,6 +88,7 @@ export function useData<T>(
       });
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [action, key, enabled, revision]);
   const reload = useCallback(() => setRevision((v) => v + 1), []);

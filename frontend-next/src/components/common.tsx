@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
   AlertCircle,
   LoaderCircle,
@@ -97,6 +97,7 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId(), descriptionId = useId();
   useEffect(() => {
     const el = ref.current;
     el?.showModal();
@@ -110,13 +111,13 @@ export function Modal({
         event.preventDefault();
         onClose();
       }}
-      aria-labelledby="dialog-title"
-      aria-describedby={description ? "dialog-description" : undefined}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
     >
       <div className="dialog-head">
         <div>
-          <h2 id="dialog-title">{title}</h2>
-          {description ? <p id="dialog-description">{description}</p> : null}
+          <h2 id={titleId}>{title}</h2>
+          {description ? <p id={descriptionId}>{description}</p> : null}
         </div>
         <Button
           variant="ghost"
