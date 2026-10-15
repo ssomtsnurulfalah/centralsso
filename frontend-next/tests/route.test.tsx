@@ -304,12 +304,19 @@ test("HTTP07 perubahan profil membatalkan sesi, lalu permintaan selanjutnya meng
 test("HTTP08 logout mencabut sesi GAS dan menghapus cookie lokal", async () => {
   loginAs("admin");
   expect((await POST(request("logout"))).status).toBe(200);
+  expect(transport).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(transport.mock.calls[0][1].body).op).toBe("session.revoke");
   expect(cookies.writes.at(-1)?.value).toBe("");
   expect(cookies.writes.at(-1)?.options.expires).toEqual(new Date(0));
   const session = e.db.list("AdminSessions", {
     filters: { session_token_hash: digest(tokens.admin) },
   }).items[0];
   expect(session.revoked_at).toBeTruthy();
+});
+test("logout without a cookie clears the local cookie without waiting for GAS", async () => {
+  expect((await POST(request("logout"))).status).toBe(200);
+  expect(transport).not.toHaveBeenCalled();
+  expect(cookies.writes.at(-1)?.value).toBe("");
 });
 test("HTTP09 validasi input dan ukuran body ditolak tanpa memuat material password", async () => {
   loginAs("super_admin");

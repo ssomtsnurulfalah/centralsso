@@ -4,7 +4,7 @@ import {
   usePreferences,
   timezoneLabel,
 } from "./preferences";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Fingerprint,
   LayoutDashboard,
@@ -19,11 +19,12 @@ import {
   ChevronRight,
   ShieldCheck,
   X,
+  LoaderCircle,
 } from "lucide-react";
 import { AdminLink } from "./admin-link";
 import type { Identity } from "@/lib/panel-schema";
 import { api, errorMessage } from "@/lib/client";
-import { Badge, Button, Notice } from "./common";
+import { Badge, Button, Modal, Notice } from "./common";
 export const sections = [
   {
     id: "dashboard",
@@ -80,7 +81,9 @@ function ShellBody({
   const { value: prefs } = usePreferences();
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
+    [confirmLogout, setConfirmLogout] = useState(false),
     [error, setError] = useState("");
+  const logoutPending = useRef(false);
   const current = sections.find((v) => v.id === section)!;
   const links = sections.filter(
     (v) =>
@@ -88,14 +91,23 @@ function ShellBody({
       ["dashboard", "users", "profile"].includes(v.id),
   );
   async function logout() {
+    if (logoutPending.current) return;
+    logoutPending.current = true;
     setBusy(true);
+    setError("");
     try {
       await api("logout");
-      window.location.assign("/login");
+      window.location.replace("/login");
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
+      logoutPending.current = false;
     }
+  }
+  function closeLogout() {
+    if (logoutPending.current) return;
+    setConfirmLogout(false);
+    setError("");
   }
   return (
     <div className="app-shell">
@@ -185,7 +197,10 @@ function ShellBody({
             <Button
               variant="ghost"
               size="icon"
-              onClick={logout}
+              onClick={() => {
+                setError("");
+                setConfirmLogout(true);
+              }}
               disabled={busy}
               aria-label="Keluar dari sesi"
             >
@@ -197,17 +212,13 @@ function ShellBody({
           <div className="page-heading">
             <div>
               <div className="eyebrow">CENTRAL SSO / ADMINISTRASI</div>
-              <h1 id="page-title" tabIndex={-1}>{current.label}</h1>
+              <h1 id="page-title" tabIndex={-1}>
+                {current.label}
+              </h1>
               <p>{current.description}</p>
             </div>
             <Badge value={user.global_role} />
           </div>
-          {error ? (
-            <Notice error>
-              {error} Cookie lokal sudah dihapus bila proses logout terputus;
-              buka halaman masuk kembali.
-            </Notice>
-          ) : null}
           {children}
           <footer className="page-footer">
             <span>
@@ -217,6 +228,47 @@ function ShellBody({
           </footer>
         </main>
       </div>
+      {confirmLogout ? (
+        <Modal
+          title="Keluar dari aplikasi?"
+          description="Sesi Anda akan diakhiri. Anda perlu masuk kembali untuk mengakses aplikasi."
+          onClose={closeLogout}
+          busy={busy}
+        >
+          <div className="form-stack">
+            {error ? (
+              <Notice error>
+                {error} Logout belum dapat dikonfirmasi. Silakan coba lagi.
+              </Notice>
+            ) : null}
+            {busy ? (
+              <p role="status">
+                <LoaderCircle className="spin" size={18} aria-hidden="true" />{" "}
+                Sedang keluar…
+              </p>
+            ) : null}
+            <div className="form-actions" aria-busy={busy}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeLogout}
+                disabled={busy}
+                autoFocus
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={logout}
+                disabled={busy}
+              >
+                {busy ? "Memproses…" : "Ya, keluar"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

@@ -90,14 +90,17 @@ export function Modal({
   description,
   children,
   onClose,
+  busy = false,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   onClose: () => void;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId(), descriptionId = useId();
+  const titleId = useId(),
+    descriptionId = useId();
   useEffect(() => {
     const el = ref.current;
     el?.showModal();
@@ -109,7 +112,7 @@ export function Modal({
       className="dialog"
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        if (!busy) onClose();
       }}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
@@ -124,6 +127,7 @@ export function Modal({
           size="icon"
           type="button"
           onClick={onClose}
+          disabled={busy}
           aria-label="Tutup dialog"
         >
           <X size={19} />

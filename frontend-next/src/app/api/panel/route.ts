@@ -6,7 +6,6 @@ import {
   createUser,
   panelCall,
   services,
-  sessionToken,
   validatedSession,
 } from "@/lib/server/panel";
 import { readLimited } from "@/lib/server/gas-client.mjs";
@@ -106,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
     if (action === "logout") {
       try {
-        const token = await sessionToken();
+        const token = jar.get(name)?.value;
         if (token) await services().auth.logout(token);
       } finally {
         jar.set(name, "", { ...opts, expires: new Date(0) });
