@@ -91,6 +91,24 @@ beforeEach(() => {
   vi.stubGlobal("fetch", transport);
 });
 afterEach(() => vi.unstubAllEnvs());
+test('LH HTTP numeric security Settings still allow real Super Admin login',async()=>{
+  e.spreadsheet.getSheetByName('Settings').cells.slice(1).forEach((r: unknown[])=>{if(typeof r[1]==='string'&&/^\d+$/.test(r[1]))r[1]=Number(r[1]);});
+  expect((await POST(request('login',{username:'admin.utama',password}))).status).toBe(200);
+  expect(cookies.writes).toHaveLength(1);
+});
+test('LH HTTP login normalizes username capitalization and outer spaces',async()=>{
+  expect((await POST(request('login',{username:'  ADMIN.UTAMA  ',password}))).status).toBe(200);
+});
+test('LH HTTP invalid backend setting is a configuration error without sensitive data',async()=>{
+  e.spreadsheet.getSheetByName('Settings').cells.find((r:unknown[])=>r[0]==='password_min_length')[1]=1.5;
+  const response=await POST(request('login',{username:'admin.utama',password}));
+  const body=await response.json();expect(response.status).toBe(503);expect(body.error.code).toBe('AUTH_CONFIGURATION_ERROR');
+  expect(body.error.message).toContain('diagnoseAdminLoginSetup');expect(JSON.stringify(body)).not.toContain(password);expect(cookies.writes).toHaveLength(0);
+});
+test('LH HTTP login never trims password spaces or issues a cookie for them',async()=>{
+  const response=await POST(request('login',{username:'admin.utama',password:' '+password+' '}));
+  expect(response.status).toBe(401);expect(cookies.writes).toHaveLength(0);
+});
 function loginAs(role: string) {
   cookies.values.set("central_sso_dev_session", tokens[role]);
 }

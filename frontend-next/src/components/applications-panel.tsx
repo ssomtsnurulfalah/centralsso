@@ -1,6 +1,5 @@
 "use client";
 import { useDate } from "./preferences";
-import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { Plus, Pencil, Power, ArrowUpRight, KeyRound } from "lucide-react";
 import type { ApplicationRecord } from "@/lib/server/application-registry.mjs";
@@ -123,12 +122,12 @@ export function ApplicationsPanel() {
                             <Pencil size={14} /> Edit
                           </Button>
                           <Button asChild variant="ghost" size="icon">
-                            <Link
+                            <a
                               href={`/admin/credentials?app=${encodeURIComponent(r.application_id)}`}
                               aria-label={`Kredensial ${r.application_name}`}
                             >
                               <KeyRound size={16} />
-                            </Link>
+                            </a>
                           </Button>
                           {r.application_status === "active" ? (
                             <Button

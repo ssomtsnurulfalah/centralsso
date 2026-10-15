@@ -4,7 +4,6 @@ import {
   usePreferences,
   timezoneLabel,
 } from "./preferences";
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
   Fingerprint,
@@ -110,7 +109,7 @@ function ShellBody({
         />
       ) : null}
       <aside className={`sidebar ${open ? "is-open" : ""}`}>
-        <Link className="brand" href="/admin">
+        <a className="brand" href="/admin">
           <span className="brand-symbol">
             <Fingerprint size={25} />
           </span>
@@ -118,7 +117,7 @@ function ShellBody({
             {prefs.system_name}
             <small>{prefs.institution_name}</small>
           </span>
-        </Link>
+        </a>
         <Button
           className="nav-close"
           variant="ghost"
@@ -131,7 +130,7 @@ function ShellBody({
         <div className="nav-label">RUANG ADMINISTRASI</div>
         <nav aria-label="Navigasi utama">
           {links.map(({ id, label, icon: Icon }) => (
-            <Link
+            <a
               key={id}
               href={id === "dashboard" ? "/admin" : `/admin/${id}`}
               onClick={() => setOpen(false)}
@@ -141,7 +140,7 @@ function ShellBody({
               <Icon size={19} />
               <span>{label}</span>
               {id === section ? <ChevronRight size={15} /> : null}
-            </Link>
+            </a>
           ))}
         </nav>
         <div className="sidebar-note">
