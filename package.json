@@ -1,9 +1,9 @@
 {
-  "name": "central-sso-stage-9",
+  "name": "central-sso",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "scripts": {
-    "test": "node --test --test-reporter=tap tests/database.test.cjs tests/authentication.test.mjs tests/user-directory.test.mjs tests/application-registry.test.mjs tests/admin-panel.test.mjs tests/auth-response.test.mjs tests/integration-runner.test.mjs tests/security-stage8.test.mjs tests/deployment.test.mjs",
+    "test": "node --test --test-reporter=tap tests/database.test.cjs tests/authentication.test.mjs tests/user-directory.test.mjs tests/application-registry.test.mjs tests/admin-panel.test.mjs tests/auth-response.test.mjs tests/integration-runner.test.mjs tests/security-stage8.test.mjs tests/deployment.test.mjs tests/login-hotfix.test.mjs",
     "test:integration": "node scripts/test-http-integration.mjs",
     "test:live-panel": "node scripts/test-live-panel.mjs",
     "test:security": "node --test --test-reporter=tap tests/security-stage8.test.mjs",
