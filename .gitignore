@@ -1,5 +1,17 @@
-# Object file
-*.o
+node_modules/
+.env*
+.clasp.json
+*.log
 
-# Ada Library Information
-*.ali
+!.env.example
+**/*secrets*.json
+**/*bootstrap*.json
+**/development-client.json
+.next/
+.vercel/
+*.tsbuildinfo
+*.pem
+*.key
+.clasprc.json
+deployment-private/
+release-output/
