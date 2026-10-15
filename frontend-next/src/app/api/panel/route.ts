@@ -18,6 +18,7 @@ import {
 } from "@/lib/server/web-security.mjs";
 import * as s from "@/lib/panel-schema";
 import { validatePanelData } from "@/lib/panel-contract";
+import { verifyRecaptcha } from "@/lib/server/recaptcha.mjs";
 import type {
   ApplicationInput,
   CredentialOptions,
@@ -69,9 +70,18 @@ export async function POST(request: NextRequest) {
       opts = cookieOptions(process.env.NODE_ENV === "production");
     if (action === "login") {
       const p = z
-        .object({ username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/), password: s.password })
+        .object({
+          username: z
+            .string()
+            .trim()
+            .toLowerCase()
+            .regex(/^[a-z0-9][a-z0-9._-]{2,63}$/),
+          password: s.password,
+          captchaToken: z.string().max(4096).optional(),
+        })
         .strict()
         .parse(input);
+      await verifyRecaptcha(p.captchaToken);
       const result = await services().auth.loginAdministrator(
         p.username,
         p.password,
@@ -127,8 +137,14 @@ export async function POST(request: NextRequest) {
     let data: unknown;
     switch (action) {
       case "page.access": {
-        const p=z.object({section:s.adminSection}).strict().parse(input);
-        data={section:p.section,user,allowed:user.global_role==="super_admin"||["dashboard","users","profile"].includes(p.section)};
+        const p = z.object({ section: s.adminSection }).strict().parse(input);
+        data = {
+          section: p.section,
+          user,
+          allowed:
+            user.global_role === "super_admin" ||
+            ["dashboard", "users", "profile"].includes(p.section),
+        };
         break;
       }
       case "integration.preflight":

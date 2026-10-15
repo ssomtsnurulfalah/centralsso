@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -12,7 +11,22 @@ import {
 } from "lucide-react";
 import { api, errorMessage } from "@/lib/client";
 import { Button, Field, Input, Notice } from "./common";
-export function AuthForm({ reset = false }: { reset?: boolean }) {
+import { Recaptcha } from "./recaptcha";
+export function AuthForm({
+  reset = false,
+  captcha,
+}: {
+  reset?: boolean;
+  captcha?: {
+    enabled: boolean;
+    siteKey: string;
+    nonce: string;
+    configurationError?: boolean;
+  };
+}) {
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const captchaRequired = !reset && captcha?.enabled === true;
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [visible, setVisible] = useState(false);
@@ -33,30 +47,40 @@ export function AuthForm({ reset = false }: { reset?: boolean }) {
     setBusy(true);
     setError("");
     try {
+      if (captchaRequired && !captchaToken)
+        throw new Error("Selesaikan verifikasi reCAPTCHA sebelum masuk.");
       const result = await api<{ redirect: string }>(
         reset ? "reset.complete" : "login",
         reset
           ? { token: data.get("token"), password: data.get("password") }
-          : { username: data.get("username"), password: data.get("password") },
+          : {
+              username: data.get("username"),
+              password: data.get("password"),
+              ...(captchaRequired ? { captchaToken } : {}),
+            },
       );
       form.reset();
       window.location.assign(result.redirect);
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
+      if (captchaRequired) {
+        setCaptchaToken("");
+        setCaptchaReset((v) => v + 1);
+      }
     }
   }
   return (
     <main className="auth-page">
       <section className="auth-story">
-        <Link className="brand" href="/login">
+        <a className="brand" href="/login">
           <span className="brand-symbol">
             <Fingerprint size={25} />
           </span>
           <span>
             Central SSO<small>MTs Nurul Falah</small>
           </span>
-        </Link>
+        </a>
         <div className="auth-story-content">
           <div className="eyebrow light">PUSAT IDENTITAS MADRASAH</div>
           <h1>
@@ -162,7 +186,26 @@ export function AuthForm({ reset = false }: { reset?: boolean }) {
                 </Button>
               </span>
             </Field>
-            <Button disabled={busy} type="submit" className="full">
+            {captchaRequired ? (
+              captcha.configurationError ? (
+                <Notice error>
+                  Konfigurasi reCAPTCHA belum lengkap. Hubungi pengelola
+                  aplikasi.
+                </Notice>
+              ) : (
+                <Recaptcha
+                  siteKey={captcha.siteKey}
+                  nonce={captcha.nonce}
+                  resetVersion={captchaReset}
+                  onToken={setCaptchaToken}
+                />
+              )
+            ) : null}
+            <Button
+              disabled={busy || (captchaRequired && !captchaToken)}
+              type="submit"
+              className="full"
+            >
               {busy
                 ? "Memproses…"
                 : reset
@@ -173,11 +216,11 @@ export function AuthForm({ reset = false }: { reset?: boolean }) {
           </form>
           <div className="auth-help">
             {reset ? (
-              <Link href="/login">Kembali ke halaman masuk</Link>
+              <a href="/login">Kembali ke halaman masuk</a>
             ) : (
               <>
                 Lupa password? Hubungi Super Admin untuk mendapatkan token
-                reset. <Link href="/reset-password">Gunakan token reset</Link>
+                reset. <a href="/reset-password">Gunakan token reset</a>
               </>
             )}
           </div>

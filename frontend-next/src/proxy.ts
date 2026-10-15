@@ -9,6 +9,8 @@ export function proxy(request: NextRequest) {
     policy = contentSecurityPolicy(
       nonce,
       process.env.NODE_ENV === "development",
+      request.nextUrl.pathname === "/login" &&
+        process.env.SSO_RECAPTCHA_ENABLED === "true",
     );
   const headers = new Headers(request.headers);
   headers.set("x-nonce", nonce);

@@ -91,34 +91,69 @@ beforeEach(() => {
   vi.stubGlobal("fetch", transport);
 });
 afterEach(() => vi.unstubAllEnvs());
-test('SPA access checks use server session and deny restricted destination for Admin',async()=>{
-  loginAs('admin');
-  const response=await POST(request('page.access',{section:'applications'}));
-  const body=await response.json();expect(response.status).toBe(200);expect(body.data.allowed).toBe(false);expect(body.data.user.global_role).toBe('admin');
+test("SPA access checks use server session and deny restricted destination for Admin", async () => {
+  loginAs("admin");
+  const response = await POST(
+    request("page.access", { section: "applications" }),
+  );
+  const body = await response.json();
+  expect(response.status).toBe(200);
+  expect(body.data.allowed).toBe(false);
+  expect(body.data.user.global_role).toBe("admin");
   expect(transport).toHaveBeenCalledTimes(1);
-  expect((await POST(request('apps.list',{}))).status).toBe(403);
+  expect((await POST(request("apps.list", {}))).status).toBe(403);
 });
-test('SPA access checks reject missing sessions and invalid destinations',async()=>{
-  expect((await POST(request('page.access',{section:'users'}))).status).toBe(401);
-  loginAs('super_admin');expect((await POST(request('page.access',{section:'unknown'}))).status).toBe(400);
+test("SPA access checks reject missing sessions and invalid destinations", async () => {
+  expect(
+    (await POST(request("page.access", { section: "users" }))).status,
+  ).toBe(401);
+  loginAs("super_admin");
+  expect(
+    (await POST(request("page.access", { section: "unknown" }))).status,
+  ).toBe(400);
 });
-test('LH HTTP numeric security Settings still allow real Super Admin login',async()=>{
-  e.spreadsheet.getSheetByName('Settings').cells.slice(1).forEach((r: unknown[])=>{if(typeof r[1]==='string'&&/^\d+$/.test(r[1]))r[1]=Number(r[1]);});
-  expect((await POST(request('login',{username:'admin.utama',password}))).status).toBe(200);
+test("LH HTTP numeric security Settings still allow real Super Admin login", async () => {
+  e.spreadsheet
+    .getSheetByName("Settings")
+    .cells.slice(1)
+    .forEach((r: unknown[]) => {
+      if (typeof r[1] === "string" && /^\d+$/.test(r[1])) r[1] = Number(r[1]);
+    });
+  expect(
+    (await POST(request("login", { username: "admin.utama", password })))
+      .status,
+  ).toBe(200);
   expect(cookies.writes).toHaveLength(1);
 });
-test('LH HTTP login normalizes username capitalization and outer spaces',async()=>{
-  expect((await POST(request('login',{username:'  ADMIN.UTAMA  ',password}))).status).toBe(200);
+test("LH HTTP login normalizes username capitalization and outer spaces", async () => {
+  expect(
+    (await POST(request("login", { username: "  ADMIN.UTAMA  ", password })))
+      .status,
+  ).toBe(200);
 });
-test('LH HTTP invalid backend setting is a configuration error without sensitive data',async()=>{
-  e.spreadsheet.getSheetByName('Settings').cells.find((r:unknown[])=>r[0]==='password_min_length')[1]=1.5;
-  const response=await POST(request('login',{username:'admin.utama',password}));
-  const body=await response.json();expect(response.status).toBe(503);expect(body.error.code).toBe('AUTH_CONFIGURATION_ERROR');
-  expect(body.error.message).toContain('diagnoseAdminLoginSetup');expect(JSON.stringify(body)).not.toContain(password);expect(cookies.writes).toHaveLength(0);
+test("LH HTTP invalid backend setting is a configuration error without sensitive data", async () => {
+  e.spreadsheet
+    .getSheetByName("Settings")
+    .cells.find((r: unknown[]) => r[0] === "password_min_length")[1] = 1.5;
+  const response = await POST(
+    request("login", { username: "admin.utama", password }),
+  );
+  const body = await response.json();
+  expect(response.status).toBe(503);
+  expect(body.error.code).toBe("AUTH_CONFIGURATION_ERROR");
+  expect(body.error.message).toContain("diagnoseAdminLoginSetup");
+  expect(JSON.stringify(body)).not.toContain(password);
+  expect(cookies.writes).toHaveLength(0);
 });
-test('LH HTTP login never trims password spaces or issues a cookie for them',async()=>{
-  const response=await POST(request('login',{username:'admin.utama',password:' '+password+' '}));
-  expect(response.status).toBe(401);expect(cookies.writes).toHaveLength(0);
+test("LH HTTP login never trims password spaces or issues a cookie for them", async () => {
+  const response = await POST(
+    request("login", {
+      username: "admin.utama",
+      password: " " + password + " ",
+    }),
+  );
+  expect(response.status).toBe(401);
+  expect(cookies.writes).toHaveLength(0);
 });
 function loginAs(role: string) {
   cookies.values.set("central_sso_dev_session", tokens[role]);
@@ -464,4 +499,67 @@ test("HTTP20 token reset yang diterbitkan sebelum perubahan profil ditolak", asy
       )
     ).status,
   ).toBe(401);
+});
+
+test("reCAPTCHA missing or invalid token stops login before GAS and cookie", async () => {
+  vi.stubEnv("SSO_RECAPTCHA_ENABLED", "true");
+  vi.stubEnv("SSO_RECAPTCHA_SITE_KEY", "site-key-".repeat(5));
+  vi.stubEnv("SSO_RECAPTCHA_SECRET_KEY", "secret-key-".repeat(5));
+  const missing = await POST(
+    request("login", { username: "admin.utama", password }),
+  );
+  expect(missing.status).toBe(400);
+  expect((await missing.json()).error.code).toBe("CAPTCHA_REQUIRED");
+  expect(transport).not.toHaveBeenCalled();
+  const google = vi.fn(async () =>
+    Response.json({ success: false, "error-codes": ["timeout-or-duplicate"] }),
+  );
+  vi.stubGlobal("fetch", google);
+  const response = await POST(
+    request("login", {
+      username: "admin.utama",
+      password,
+      captchaToken: "expired",
+    }),
+  );
+  expect((await response.json()).error.code).toBe("CAPTCHA_INVALID");
+  expect(google).toHaveBeenCalledTimes(1);
+  expect(cookies.writes).toHaveLength(0);
+  expect(e.db.all_("AuthenticationChallenges")).toHaveLength(0);
+});
+test("verified reCAPTCHA precedes GAS authentication and token never reaches GAS", async () => {
+  vi.stubEnv("SSO_RECAPTCHA_ENABLED", "true");
+  vi.stubEnv("SSO_RECAPTCHA_SITE_KEY", "site-key-".repeat(5));
+  vi.stubEnv("SSO_RECAPTCHA_SECRET_KEY", "secret-key-".repeat(5));
+  const steps: string[] = [];
+  const token = "captcha-private-test-token";
+  vi.stubGlobal("fetch", async (url: string, options: RequestInit) => {
+    if (url === "https://www.google.com/recaptcha/api/siteverify") {
+      steps.push("captcha");
+      return Response.json({
+        success: true,
+        hostname: "sso.example.sch.id",
+        challenge_ts: new Date().toISOString(),
+      });
+    }
+    steps.push("gas");
+    expect(options.body).not.toContain(token);
+    expect(options.body).not.toContain("secret-key-");
+    return (
+      transport as unknown as (
+        url: string,
+        options: RequestInit,
+      ) => Promise<Response>
+    )(url, options);
+  });
+  const response = await POST(
+    request("login", {
+      username: "admin.utama",
+      password,
+      captchaToken: token,
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(steps).toEqual(["captcha", "gas", "gas"]);
+  expect(cookies.writes).toHaveLength(1);
 });

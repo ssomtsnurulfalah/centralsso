@@ -2,7 +2,11 @@ import { randomBytes } from "node:crypto";
 export function createNonce() {
   return randomBytes(24).toString("base64");
 }
-export function contentSecurityPolicy(nonce, development = false) {
+export function contentSecurityPolicy(
+  nonce,
+  development = false,
+  recaptcha = false,
+) {
   if (typeof nonce !== "string" || !/^[A-Za-z0-9+/]{32}$/.test(nonce))
     throw new Error("Nonce CSP tidak valid.");
   return [
@@ -13,7 +17,12 @@ export function contentSecurityPolicy(nonce, development = false) {
     `style-src-attr ${development ? "'unsafe-inline'" : "'none'"}`,
     "img-src 'self' data:",
     "font-src 'self'",
-    `connect-src 'self'${development ? " ws: wss:" : ""}`,
+    `connect-src 'self'${recaptcha ? " https://www.google.com/recaptcha/" : ""}${development ? " ws: wss:" : ""}`,
+    ...(recaptcha
+      ? [
+          "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
+        ]
+      : []),
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",
