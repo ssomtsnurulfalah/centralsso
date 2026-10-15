@@ -108,6 +108,10 @@ export function createAuthentication(call) {
       );
     },
     async loginAdministrator(username, password) {
+      if(typeof username!=='string'||!/^[a-z0-9][a-z0-9._-]{2,63}$/.test(username.trim().toLowerCase())||typeof password!=='string'||!password.length||Array.from(password).length>1024||Buffer.byteLength(password,'utf8')>4096)
+        throw Object.assign(new Error('Format login tidak valid.'),{code:'VALIDATION_ERROR'});
+      username=username.trim().toLowerCase();
+      try {
       const nonce = secret();
       const prepared = await call("admin.prepare", {
         username,
@@ -135,6 +139,10 @@ export function createAuthentication(call) {
         sessionToken: token,
         expiresAt: result.session_expires_at,
       };
+      } catch(error) {
+        if(error?.code==='VALIDATION_ERROR')throw Object.assign(new Error('Konfigurasi atau data login GAS tidak valid.'),{code:'AUTH_CONFIGURATION_ERROR'});
+        throw error;
+      }
     },
     validateSession(token) {
       if (!/^[0-9a-f]{64}$/.test(token || "")) throw invalid();
