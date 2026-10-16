@@ -772,6 +772,8 @@ details code {
   flex-direction: column;
   padding: 30px 18px 0;
   z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .brand {
   display: flex;
@@ -792,6 +794,7 @@ details code {
   margin-top: 6px;
 }
 .brand-symbol {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -827,6 +830,36 @@ details code {
 }
 .nav-item span {
   flex: 1;
+}
+.nav-item > svg {
+  flex-shrink: 0;
+}
+.sidebar-toggle {
+  flex-shrink: 0;
+}
+@media (min-width: 741px) {
+  .sidebar-collapsed .sidebar {
+    width: 76px;
+    padding-inline: 10px;
+  }
+  .sidebar-collapsed .app-content {
+    margin-left: 76px;
+  }
+  .sidebar-collapsed .sidebar > .brand {
+    margin-left: 9px;
+  }
+  .sidebar-collapsed .brand-copy,
+  .sidebar-collapsed .nav-label,
+  .sidebar-collapsed .nav-item span,
+  .sidebar-collapsed .nav-current,
+  .sidebar-collapsed .sidebar-note,
+  .sidebar-collapsed .sidebar-bottom {
+    display: none;
+  }
+  .sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding-inline: 8px;
+  }
 }
 .nav-item:hover {
   background: #1b3a3f;
@@ -1411,6 +1444,9 @@ details code {
   }
 }
 @media (max-width: 740px) {
+  .sidebar-toggle {
+    display: none;
+  }
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.2s;

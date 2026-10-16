@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { AuthForm } from "../src/components/auth-form";
 const script = vi.hoisted(() => ({ props: {} as Record<string, unknown> }));
@@ -72,7 +78,7 @@ test("login requires solved checkbox, sends token, resets challenge after failed
   fireEvent.click(submit);
   await screen.findByText("Kredensial tidak valid.");
   expect((submit as HTMLButtonElement).disabled).toBe(true);
-  expect(reset).toHaveBeenCalledWith(4);
+  await waitFor(() => expect(reset).toHaveBeenCalledWith(4));
   const input = JSON.parse(
     vi.mocked(fetch).mock.calls[0][1]?.body as string,
   ).input;

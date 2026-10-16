@@ -8,6 +8,15 @@ export const metadata: Metadata = {
   },
   description: "Pusat identitas dan akses MTs Nurul Falah",
   robots: { index: false, follow: false },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export default async function RootLayout({
