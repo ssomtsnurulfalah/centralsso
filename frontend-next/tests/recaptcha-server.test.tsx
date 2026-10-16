@@ -65,7 +65,6 @@ test("missing token and missing config reject before outbound request", async ()
 test.each([
   { ...valid, success: false },
   { ...valid, hostname: "attacker.example.org" },
-  { ...valid, challenge_ts: new Date(now - 121000).toISOString() },
   { ...valid, challenge_ts: new Date(now + 60000).toISOString() },
   { ...valid, challenge_ts: "bad" },
   { ...valid, "error-codes": ["timeout-or-duplicate"] },
@@ -133,4 +132,116 @@ test("captcha CSP retains nonce/strict-dynamic without unsafe-inline scripts", (
   expect(policy).not.toContain("unsafe-inline");
   expect(policy).toContain("frame-src https://www.google.com/recaptcha/");
   expect(contentSecurityPolicy(nonce, false)).not.toContain("google.com");
+});
+
+test("AUDIT challenge load timestamp is not the two-minute token issue time", async () => {
+  await expect(
+    verifyRecaptcha(token, {
+      env,
+      now,
+      fetchImpl: async () =>
+        Response.json({
+          ...valid,
+          challenge_ts: new Date(now - 15 * 60000).toISOString(),
+        }),
+    }),
+  ).resolves.toBeUndefined();
+});
+test("AUDIT blank enable flag cannot silently disable protection", () => {
+  expect(() =>
+    recaptchaPublicConfig({ ...env, SSO_RECAPTCHA_ENABLED: "" }),
+  ).toThrow();
+});
+test("AUDIT page config detects missing secret before presenting a challenge", () => {
+  expect(() =>
+    recaptchaPublicConfig({ ...env, SSO_RECAPTCHA_SECRET_KEY: "" }),
+  ).toThrow();
+});
+test("AUDIT malformed non-string timestamps and non-JSON responses fail closed", async () => {
+  await expect(
+    verifyRecaptcha(token, {
+      env,
+      now,
+      fetchImpl: async () =>
+        Response.json({ ...valid, challenge_ts: [valid.challenge_ts] }),
+    }),
+  ).rejects.toBeTruthy();
+  await expect(
+    verifyRecaptcha(token, {
+      env,
+      now,
+      fetchImpl: async () =>
+        new Response(JSON.stringify(valid), {
+          headers: { "Content-Type": "text/html" },
+        }),
+    }),
+  ).rejects.toBeTruthy();
+});
+
+test.each([
+  { SSO_APP_ORIGIN: "https://sso.example.org/" },
+  { SSO_APP_ORIGIN: "https://sso.example.org/path" },
+  { SSO_APP_ORIGIN: "https://user:pass@sso.example.org" },
+  { SSO_APP_ORIGIN: "file:///tmp/app" },
+  { SSO_RECAPTCHA_SITE_KEY: 123456789012345678901 },
+  { SSO_RECAPTCHA_SECRET_KEY: 123456789012345678901 },
+  { NODE_ENV: "production", SSO_APP_ORIGIN: "http://sso.example.org" },
+  {
+    NODE_ENV: "production",
+    SSO_RECAPTCHA_SECRET_KEY: "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
+  },
+])("AUDIT invalid config %# is rejected before Google", async (patch) => {
+  const fetchImpl = vi.fn();
+  await expect(
+    verifyRecaptcha(token, {
+      env: { ...env, ...patch } as unknown as Record<string, string>,
+      fetchImpl,
+    }),
+  ).rejects.toMatchObject({ code: "CAPTCHA_CONFIGURATION_ERROR" });
+  expect(fetchImpl).not.toHaveBeenCalled();
+});
+test("AUDIT server clock is read after verification and malformed date type never passes", async () => {
+  const order: string[] = [];
+  await verifyRecaptcha(token, {
+    env,
+    now: () => {
+      order.push("clock");
+      return now + 30000;
+    },
+    fetchImpl: async () => {
+      order.push("fetch");
+      return Response.json({
+        ...valid,
+        challenge_ts: new Date(now + 20000).toISOString(),
+      });
+    },
+  });
+  expect(order).toEqual(["fetch", "clock"]);
+  await expect(
+    verifyRecaptcha(token, {
+      env,
+      now: NaN,
+      fetchImpl: async () => Response.json(valid),
+    }),
+  ).rejects.toMatchObject({ code: "CAPTCHA_UNAVAILABLE" });
+  for (const challenge_ts of [null, 12345678, [valid.challenge_ts], {}])
+    await expect(
+      verifyRecaptcha(token, {
+        env,
+        now,
+        fetchImpl: async () => Response.json({ ...valid, challenge_ts }),
+      }),
+    ).rejects.toMatchObject({ code: "CAPTCHA_INVALID" });
+});
+test("AUDIT non-JSON content is rejected even if its body resembles a valid result", async () => {
+  await expect(
+    verifyRecaptcha(token, {
+      env,
+      now,
+      fetchImpl: async () =>
+        new Response(JSON.stringify(valid), {
+          headers: { "Content-Type": "text/html" },
+        }),
+    }),
+  ).rejects.toMatchObject({ code: "CAPTCHA_UNAVAILABLE" });
 });

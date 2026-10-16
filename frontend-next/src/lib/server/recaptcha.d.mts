@@ -7,6 +7,6 @@ export function verifyRecaptcha(
   options?: {
     env?: Record<string, string | undefined>;
     fetchImpl?: typeof fetch;
-    now?: number;
+    now?: number | (() => number);
   },
 ): Promise<void>;

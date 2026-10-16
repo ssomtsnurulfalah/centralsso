@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   Eye,
@@ -27,6 +27,10 @@ export function AuthForm({
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaReset, setCaptchaReset] = useState(0);
   const captchaRequired = !reset && captcha?.enabled === true;
+  const submitting = useRef(false);
+  useEffect(() => {
+    setCaptchaToken("");
+  }, [reset, captcha?.enabled, captcha?.siteKey, captcha?.configurationError]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [visible, setVisible] = useState(false);
@@ -42,12 +46,14 @@ export function AuthForm({
   }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     const form = e.currentTarget,
       data = new FormData(form);
     setBusy(true);
     setError("");
     try {
-      if (captchaRequired && !captchaToken)
+      if (captchaRequired && (captcha.configurationError || !captchaToken))
         throw new Error("Selesaikan verifikasi reCAPTCHA sebelum masuk.");
       const result = await api<{ redirect: string }>(
         reset ? "reset.complete" : "login",
@@ -64,6 +70,7 @@ export function AuthForm({
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
+      submitting.current = false;
       if (captchaRequired) {
         setCaptchaToken("");
         setCaptchaReset((v) => v + 1);
@@ -194,6 +201,7 @@ export function AuthForm({
                 </Notice>
               ) : (
                 <Recaptcha
+                  key={captcha.siteKey}
                   siteKey={captcha.siteKey}
                   nonce={captcha.nonce}
                   resetVersion={captchaReset}
@@ -202,7 +210,11 @@ export function AuthForm({
               )
             ) : null}
             <Button
-              disabled={busy || (captchaRequired && !captchaToken)}
+              disabled={
+                busy ||
+                (captchaRequired &&
+                  (captcha.configurationError || !captchaToken))
+              }
               type="submit"
               className="full"
             >
